@@ -9,105 +9,84 @@ import {
   Button,
 } from "reactstrap";
 import axios from "axios";
+import { func } from "prop-types";
 
-const quizQuestions = [
-  {
-    question: "What is the capital of France?",
-    options: ["Paris", "Berlin", "Rome", "Madrid"],
-    answer: "Paris",
-  },
-  {
-    question: "What is 2 + 2?",
-    options: ["3", "4", "5", "6"],
-    answer: "4",
-  },
-  {
-    question: "Which planet is known as the Red Planet?",
-    options: ["Mars", "Jupiter", "Venus", "Saturn"],
-    answer: "Mars",
-  },
-  {
-    question:
-      "What gas do plants absorb from the atmosphere for photosynthesis?",
-    options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"],
-    answer: "Carbon Dioxide",
-  },
-  {
-    question: "In which country are the ancient Pyramids of Giza located?",
-    options: ["Mexico", "India", "Egypt", "Peru"],
-    answer: "Egypt",
-  },
-  {
-    question: "Who wrote the play 'Romeo and Juliet'?",
-    options: [
-      "William Shakespeare",
-      "Jane Austen",
-      "Charles Dickens",
-      "Mark Twain",
-    ],
-    answer: "William Shakespeare",
-  },
-  {
-    question: "Which is the largest mammal in the world?",
-    options: ["African Elephant", "Blue Whale", "Giraffe", "Grizzly Bear"],
-    answer: "Blue Whale",
-  },
-  {
-    question: "What is the chemical symbol for water?",
-    options: ["WO", "H2O", "HO2", "W2"],
-    answer: "H2O",
-  },
-  {
-    question: "In what year did man first walk on the moon?",
-    options: ["1969", "1972", "1965", "1980"],
-    answer: "1969",
-  },
-  {
-    question:
-      "Which language is used to create websites along with HTML and CSS?",
-    options: ["Python", "C++", "JavaScript", "Java"],
-    answer: "JavaScript",
-  },
-];
+
 
 const Quiz = () => {
+  const username="exampleuse2r";
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showScore, setShowScore] = useState(false);
   const [score, setScore] = useState(0);
   const [quizTaken, setQuizTaken] = useState(false);
+  const [quizQuestions,setQuizQuestions]=useState([])
+  const [quizAnswers,setQuizAnswers]=useState([])
+  const [quizFinished, setQuizFinished] = useState(false);
 
+  async function fetchQuestions(){
+    try {
+      const response = await axios.get("http://localhost:8080/api/rewards/getQuiz")
+   
+      const questions = response.data.map(item => item.question);
+      const answers = response.data.map(item => item.answer);
+      setQuizQuestions(questions);
+      setQuizAnswers(answers);
+      console.log("questions",questions)
+      console.log("answers",answers)
+    } catch (error) {
+console.log(error)
+    }
+  }
   //allow users to play once in 24 hours
   useEffect(() => {
-    // Check if the user has already taken the quiz today
-    const lastTaken = localStorage.getItem("lastQuizTaken");
-    if (
-      lastTaken &&
-      new Date().getTime() - new Date(lastTaken).getTime() < 24 * 60 * 60 * 1000
-    ) {
-      setQuizTaken(true);
-    }
-  }, []);
+    async function fetchData() {
+      try {
+          const lastTaken = localStorage.getItem("lastQuizTaken");
+          if (
+              lastTaken &&
+              new Date().getTime() - new Date(lastTaken).getTime() < 24 * 60 * 60 * 1000
+          ) {
+              setQuizTaken(true);
+          } else {
+              await fetchQuestions();
+          }
+      } catch (error) {
+          console.error("Error fetching questions: ", error);
+      }
+  }
 
+  fetchData();
+  }, []);
+  useEffect(() => {
+    if (quizFinished) {
+      async function sendScore(){
+
+        axios.put("http://localhost:8080/api/rewards/save-quiz-score", { username, score })
+        .then(response => {
+          console.log(response.data);
+        })
+        .catch(error => {
+          console.error("There was an error saving the quiz score", error);
+        });
+        
+        // Reset quizFinished to be ready for the next quiz
+        setQuizFinished(false);
+      }
+      sendScore()
+    }
+}, [quizFinished]);
   const handleAnswerOptionClick = (isCorrect) => {
     if (isCorrect) {
-      setScore(score + 10); // Each correct answer gives 10 XP
+      setScore(score => score + 10)      
+     // Each correct answer gives 10 XP
     }
-
     const nextQuestion = currentQuestion + 1;
     if (nextQuestion < quizQuestions.length) {
       setCurrentQuestion(nextQuestion);
     } else {
       setShowScore(true);
+      setQuizFinished(true); 
       localStorage.setItem("lastQuizTaken", new Date().toISOString());
-      // Send score to the backend for storing in the database
-      axios
-        .post("/api/save-quiz-score", { score })
-        .then((response) => {
-          console.log(response.data);
-        })
-        .catch((error) => {
-          console.error("There was an error saving the quiz score", error);
-        });
     }
   };
 
@@ -127,7 +106,7 @@ const Quiz = () => {
           <Container>
             {showScore ? (
               <div>
-                You scored {score} out of {quizQuestions.length}
+                You scored {score} out of {quizQuestions.length*10}
               </div>
             ) : (
               <div>
@@ -136,22 +115,15 @@ const Quiz = () => {
                   {quizQuestions.length}
                 </div>
                 <div className="mb-4">
-                  {quizQuestions[currentQuestion].question}
+                  {quizQuestions[currentQuestion]}
                 </div>
                 <div>
-                  {quizQuestions[currentQuestion].options.map((option) => (
-                    <Button
-                      key={option}
-                      onClick={() =>
-                        handleAnswerOptionClick(
-                          option === quizQuestions[currentQuestion].answer
-                        )
-                      }
-                      className="me-2 mb-2"
-                    >
-                      {option}
-                    </Button>
-                  ))}
+                <Button onClick={() => handleAnswerOptionClick('True' === quizAnswers[currentQuestion])} className="me-2 mb-2">
+                   True
+                </Button>
+                <Button onClick={() => handleAnswerOptionClick('False' === quizAnswers[currentQuestion])} className="me-2 mb-2">
+                  False
+                </Button>
                 </div>
               </div>
             )}

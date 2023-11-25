@@ -10,7 +10,7 @@ import {
   Label,
   Badge,
 } from "reactstrap";
-
+import axios from "axios";
 const GMN = () => {
   const [secretNumber, setSecretNumber] = useState("");
   const [guess, setGuess] = useState("");
@@ -38,6 +38,7 @@ const GMN = () => {
   const checkGuess = () => {
     let feedback = "";
     let correctCount = 0;
+    console.log(secretNumber)
     for (let i = 0; i < guess.length; i++) {
       if (secretNumber.includes(guess[i])) {
         if (secretNumber[i] === guess[i]) {
@@ -55,6 +56,17 @@ const GMN = () => {
       setGameWon(true);
     }
   };
+  useEffect(()=>{
+    async function updateKnowledgeXP(){
+      try {
+        const response=await axios.put("http://localhost:8080/api/rewards/save-quiz-score?username=exampleuse2r&score=40)")
+        console.log(response)
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    updateKnowledgeXP()   
+  },[gameWon])
 
   const handleGiveUp = () => {
     setGivenUp(true);

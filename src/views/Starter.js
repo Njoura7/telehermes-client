@@ -25,7 +25,7 @@ const Starter = () => {
             bg="bg-light-success text-success"
             title="xp"
             subtitle="XP"
-            earning="2400"
+            earning="8000"
             icon="bi bi-star-half"
           />
         </Col>
